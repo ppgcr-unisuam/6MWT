@@ -52,7 +52,6 @@ ui <- shiny::fluidPage(
     });
   ")),
   
-  
   shiny::titlePanel("Six-Minute Walk Test"),
   shiny::br(),
   shiny::sidebarLayout(
@@ -342,7 +341,6 @@ server <- function(input, output, session) {
   shiny::observeEvent(input$download_pdf_btn, {
     session$sendCustomMessage("trigger_pdf", list())
   })
-  
 }
 
 shiny::shinyApp(ui, server)
