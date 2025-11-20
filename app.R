@@ -5,14 +5,30 @@ if (!dir.exists(dir.name)) {
 }
 shiny::addResourcePath(prefix = "www", directoryPath = "www")
 
+# copy favicon folder to the www dir
+if (dir.exists("favicon_io")) {
+  R.utils::copyDirectory("favicon_io", file.path(dir.name, "favicon_io"))
+}
+
 # use this code to debug
 # rsconnect::showLogs()
 
 # read XLSX
 data <- readxl::read_xlsx("0208 Aggregation published models.xlsx")
 equations <- colnames(data)[-1]
+# sort by name
+equations <- sort(equations)
 
 ui <- shiny::fluidPage(
+  # add favicon
+  shiny::tags$head(
+    shiny::tags$link(rel = "shortcut icon", href = "favicon_io/favicon.ico"),
+    shiny::tags$link(rel = "icon", href = "favicon_io/favicon-32x32.png"),
+    shiny::tags$link(rel = "icon", href = "favicon_io/favicon-16x16.png"),
+    shiny::tags$link(rel = "apple-touch-icon", href = "favicon_io/apple-touch-icon.png"),
+    shiny::tags$link(rel = "icon", href = "favicon_io/android-chrome-192x192.png"),
+    shiny::tags$link(rel = "icon", href = "favicon_io/android-chrome-512x512.png")
+  ),
   
   # ----- Hide the built-in DT PDF button -----
   tags$head(tags$style(htmltools::HTML("
@@ -20,6 +36,20 @@ ui <- shiny::fluidPage(
       display: none !important; 
     }
   "))),
+  
+  # ----- Input card style -----
+  tags$head(
+    tags$style(htmltools::HTML("
+    .input-card {
+      background-color: #f5f7fa;
+      border-radius: 12px;
+      padding: 20px;
+      margin-top: 25px;
+      margin-bottom: 25px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+    }
+  ")),
+  ),
   
   # ----- Prediction card style -----
   tags$head(
@@ -35,7 +65,17 @@ ui <- shiny::fluidPage(
         color: #1a2a33;
         box-shadow: 0 2px 6px rgba(0,0,0,0.15);
       }
-    "))
+    ")),
+  ),
+  
+  # ----- Highlight 3rd column -----
+  tags$head(
+    tags$style(htmltools::HTML("
+    table.dataTable tbody td:nth-child(3) {
+      background-color: #d3d3d3 !important;
+      font-weight: bold;
+    }
+  ")),
   ),
   
   # center table values
@@ -52,41 +92,55 @@ ui <- shiny::fluidPage(
     });
   ")),
   
-  shiny::titlePanel("Six-Minute Walk Test"),
-  shiny::br(),
-  shiny::sidebarLayout(
-    shiny::sidebarPanel(
-      shiny::selectInput(
-        "equation",
-        "Select Equation:",
-        choices = equations,
-        width = "100%"
-      ),
-      shiny::uiOutput("footnotes_container"),
-      shiny::uiOutput("doi_container")
+  # ----- Page title -----
+  tags$head(
+    tags$title("Six-Minute Walk Test")
+  ),
+  shiny::tags$div(
+    style = "
+    font-size: 28px;
+    font-weight: bold;
+    margin-top: 20px;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  ",
+    htmltools::img(src = "favicon_io/favicon-32x32.png", height = "32px"),
+    "Six-Minute Walk Test"
+  ),
+  
+  # ----- Input card -----
+  shiny::div(
+    class = "input-card",
+    shiny::selectInput(
+      "equation",
+      "Select Equation",
+      choices = equations,
+      width = "100%"
     ),
-    
-    # table title
-    shiny::mainPanel(
-      shiny::br(),
-      DT::DTOutput("dataTable"),
-      shiny::hr(),
-      
-      shiny::div(class = "prediction-card",
-                 "Predicted Value:",
-                 shiny::br(),
-                 shiny::textOutput("prediction", inline = TRUE)
-      ),
-      
-      # ----- Bottom download button -----
-      shiny::div(style = "margin-top: 40px; text-align: center;",
-                 shiny::actionButton(
-                   "download_pdf_btn",
-                   "Download PDF",
-                   class = "btn btn-primary btn-lg"
-                 )
-      )
-    )
+    shiny::uiOutput("footnotes_container"),
+    shiny::uiOutput("doi_container")
+  ),
+  
+  # table title
+  shiny::br(),
+  DT::DTOutput("dataTable"),
+  shiny::hr(),
+  
+  shiny::div(class = "prediction-card",
+             "Predicted Value",
+             shiny::br(),
+             shiny::textOutput("prediction", inline = TRUE)
+  ),
+  
+  # ----- Bottom download button -----
+  shiny::div(style = "margin-top: 40px; text-align: center;",
+             shiny::actionButton(
+               "download_pdf_btn",
+               "Download PDF",
+               class = "btn btn-primary btn-lg"
+             )
   )
 )
 
@@ -99,10 +153,10 @@ server <- function(input, output, session) {
     shiny::req(input$equation)
     
     df <- data[, c(1, which(colnames(data) == input$equation))]
-    colnames(df) <- c("Subject", "Coefficient")
+    colnames(df) <- c("Variable", "Coefficient")
     
     # remove doi row + first 2 footnotes
-    df <- df[!grepl("DOI", df$Subject, ignore.case = TRUE), ]
+    df <- df[!grepl("DOI", df$Variable, ignore.case = TRUE), ]
     df <- df[-c(1,2), ]
     
     df <- df[!is.na(df$Coefficient), ]
@@ -120,11 +174,13 @@ server <- function(input, output, session) {
       extensions = "Buttons",
       editable = list(target = "cell", columns = 3),
       rownames = FALSE,
+      class = "compact row-border",
       options = list(
-        dom = "Brt",  # Buttons exist, but hidden
+        dom = "Brt",
         scrollX = FALSE,
         paging = FALSE,
         searching = FALSE,
+        ordering = FALSE,
         buttons = list(
           list(
             extend = "pdf",
@@ -132,7 +188,6 @@ server <- function(input, output, session) {
             title = "Six-Minute Walk Test Report",
             pageSize = "A4",
             exportOptions = list(columns = ":visible"),
-            
             customize = DT::JS("
               function (doc) {
               
@@ -222,7 +277,8 @@ server <- function(input, output, session) {
           )
         )
       )
-    )
+    ) %>%
+      DT::formatRound(columns = c("Coefficient"), digits = 3)
   })
   
   # update edited data on cell edit
@@ -239,7 +295,7 @@ server <- function(input, output, session) {
     shiny::req(input$equation)
     
     df <- data[, c(1, which(colnames(data) == input$equation))]
-    colnames(df) <- c("Subject", "Coefficient")
+    colnames(df) <- c("Variable", "Coefficient")
     
     foot <- df[1:2, ]
     
@@ -258,9 +314,9 @@ server <- function(input, output, session) {
     shiny::req(input$equation)
     
     df <- data[, c(1, which(colnames(data) == input$equation))]
-    colnames(df) <- c("Subject", "Coefficient")
+    colnames(df) <- c("Variable", "Coefficient")
     
-    doi_row <- df[grepl("DOI", df$Subject, ignore.case = TRUE), ]
+    doi_row <- df[grepl("DOI", df$Variable, ignore.case = TRUE), ]
     doi_value <- as.character(doi_row$Coefficient[1])
     
     shiny::div(
@@ -280,7 +336,7 @@ server <- function(input, output, session) {
     df$Coefficient <- suppressWarnings(as.numeric(df$Coefficient))
     df$`Patient's Value` <- suppressWarnings(as.numeric(df$`Patient's Value`))
     
-    df_no_intercept <- df[!df$Subject %in% c("Intercept"), ]
+    df_no_intercept <- df[!df$Variable %in% c("Intercept"), ]
     
     if (any(is.na(df_no_intercept$`Patient's Value`))) {
       return("")
@@ -289,9 +345,9 @@ server <- function(input, output, session) {
     df$`Patient's Value`[is.na(df$`Patient's Value`)] <- 0
     df$prod <- df$Coefficient * df$`Patient's Value`
     
-    if ("Intercept" %in% df$Subject) {
-      intercept_value <- df$Coefficient[df$Subject == "Intercept"]
-      df$prod[df$Subject == "Intercept"] <- intercept_value
+    if ("Intercept" %in% df$Variable) {
+      intercept_value <- df$Coefficient[df$Variable == "Intercept"]
+      df$prod[df$Variable == "Intercept"] <- intercept_value
     }
     
     pred <- sum(df$prod, na.rm = TRUE)
@@ -308,11 +364,11 @@ server <- function(input, output, session) {
     df$`Patient's Value` <- suppressWarnings(as.numeric(df$`Patient's Value`))
     
     # Keep intercept separate
-    intercept <- if ("Intercept" %in% df$Subject) {
-      df$Coefficient[df$Subject == "Intercept"]
+    intercept <- if ("Intercept" %in% df$Variable) {
+      df$Coefficient[df$Variable == "Intercept"]
     } else 0
     
-    df2 <- df[df$Subject != "Intercept", ]
+    df2 <- df[df$Variable != "Intercept", ]
     
     # For each coefficient: calculate min and max contribution
     df2$min_contrib <- ifelse(
