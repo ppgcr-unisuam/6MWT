@@ -277,7 +277,7 @@ server <- function(input, output, session) {
           )
         )
       )
-    ) %>%
+    ) |>
       DT::formatRound(columns = c("Coefficient"), digits = 3)
   })
   
