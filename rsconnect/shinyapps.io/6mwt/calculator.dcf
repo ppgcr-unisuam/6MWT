@@ -5,9 +5,8 @@ account: 6mwt
 server: shinyapps.io
 hostUrl: https://api.shinyapps.io/v1
 appId: 16113507
-bundleId: 11208300
+bundleId: 11214115
 url: https://6mwt.shinyapps.io/calculator/
 version: 1
 asMultiple: FALSE
 asStatic: FALSE
-ignoredFiles: app2.R
