@@ -20,7 +20,9 @@ equations <- colnames(data)[-1]
 equations <- sort(equations)
 
 ui <- shiny::fluidPage(
-  # add favicon
+  shinyjs::useShinyjs(),
+  
+  # ----- HEAD (favicon + CSS + JS) -----
   shiny::tags$head(
     shiny::tags$link(rel = "shortcut icon", href = "favicon_io/favicon.ico"),
     shiny::tags$link(rel = "icon", href = "favicon_io/favicon-32x32.png"),
@@ -30,16 +32,13 @@ ui <- shiny::fluidPage(
     shiny::tags$link(rel = "icon", href = "favicon_io/android-chrome-512x512.png")
   ),
   
-  # ----- Hide the built-in DT PDF button -----
+  # Hide DT PDF button
   tags$head(tags$style(htmltools::HTML("
-    .dt-button.buttons-pdf { 
-      display: none !important; 
-    }
+    .dt-button.buttons-pdf { display: none !important; }
   "))),
   
-  # ----- Input card style -----
-  tags$head(
-    tags$style(htmltools::HTML("
+  # Card styles
+  tags$head(tags$style(htmltools::HTML("
     .input-card {
       background-color: #f5f7fa;
       border-radius: 12px;
@@ -48,105 +47,235 @@ ui <- shiny::fluidPage(
       margin-bottom: 25px;
       box-shadow: 0 2px 6px rgba(0,0,0,0.15);
     }
-  ")),
-  ),
-  
-  # ----- Prediction card style -----
-  tags$head(
-    tags$style(htmltools::HTML("
-      .prediction-card {
-        background-color: #f5f7fa;
-        border-radius: 12px;
-        padding: 20px;
-        margin-top: 25px;
-        text-align: center;
-        font-size: 32px;
-        font-weight: bold;
-        color: #1a2a33;
-        box-shadow: 0 2px 6px rgba(0,0,0,0.15);
-      }
-    ")),
-  ),
-  
-  # ----- Highlight 3rd column -----
-  tags$head(
-    tags$style(htmltools::HTML("
-    table.dataTable tbody td:nth-child(3) {
-      background-color: #d3d3d3 !important;
+    .prediction-card {
+      background-color: #f5f7fa;
+      border-radius: 12px;
+      padding: 20px;
+      margin-top: 25px;
+      text-align: center;
+      font-size: 32px;
       font-weight: bold;
-    }
-  ")),
-  ),
-  
-  # center table values
-  tags$head(tags$style(htmltools::HTML("
-    table.dataTable td, table.dataTable th {
-      text-align: center !important;
+      color: #1a2a33;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.15);
     }
   "))),
   
-  # ----- JavaScript to trigger hidden DT PDF button -----
+  # Highlight table column + center text
+  tags$head(tags$style(htmltools::HTML("
+    table.dataTable tbody td:nth-child(3) { background-color: #d3d3d3 !important; font-weight: bold; }
+    table.dataTable td, table.dataTable th { text-align: center !important; }
+  "))),
+  
+  # JS to trigger hidden PDF button
   tags$script(htmltools::HTML("
     Shiny.addCustomMessageHandler('trigger_pdf', function(message) {
       $('.buttons-pdf').click();
     });
   ")),
   
-  # ----- Page title -----
-  tags$head(
-    tags$title("Six-Minute Walk Test")
-  ),
+  # Page title
+  tags$head(tags$title("Six-Minute Walk Test")),
   shiny::tags$div(
-    style = "
-    font-size: 28px;
-    font-weight: bold;
-    margin-top: 20px;
-    margin-bottom: 20px;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-  ",
+    style = "font-size: 28px; font-weight: bold; margin-top: 20px; margin-bottom: 20px; 
+             display: flex; align-items: center; gap: 10px;",
     htmltools::img(src = "favicon_io/favicon-32x32.png", height = "32px"),
     "Six-Minute Walk Test"
   ),
   
-  # ----- Input card -----
-  shiny::div(
-    class = "input-card",
-    shiny::selectInput(
-      "equation",
-      "Select Equation",
-      choices = equations,
-      width = "100%"
+  tags$script(htmltools::HTML("
+      $(document).on('shiny:connected', function() {
+      
+          var INITIAL_SECONDS = 6 * 60;
+          var totalSeconds = INITIAL_SECONDS;
+      
+          var timerDisplay = document.getElementById('timer_display');
+          var startBtn     = document.getElementById('timer_start');
+          var resetBtn     = document.getElementById('timer_reset');
+      
+          if (!timerDisplay || !startBtn || !resetBtn) {
+              console.error('Timer elements NOT found when JS executed');
+              return;
+          }
+      
+          var timerInterval = null;
+          var alarmPlaying = false;
+      
+          function formatTime(sec) {
+              var m = Math.floor(sec/60);
+              var s = sec % 60;
+              return String(m).padStart(2,'0') + ':' + String(s).padStart(2,'0');
+          }
+      
+          function stopAlarm() {
+              try {
+                  if (alarmPlaying && window.alarm) {
+                      window.alarm.pause();
+                      window.alarm.currentTime = 0;
+                  }
+              } catch(e){}
+              alarmPlaying = false;
+          }
+      
+          function finishTimer() {
+              clearInterval(timerInterval);
+              timerInterval = null;
+      
+              timerDisplay.textContent = 'Time is up!';
+              timerDisplay.style.color = 'red';
+      
+              try { 
+                  window.alarm.currentTime = 0; 
+                  window.alarm.play(); 
+                  alarmPlaying = true;
+              } catch(e){}
+      
+              startBtn.textContent = 'Stop';
+              startBtn.disabled = false;
+              startBtn.setAttribute('data-state','ended');
+          }
+      
+          function resetTimer() {
+              clearInterval(timerInterval);
+              stopAlarm();
+      
+              totalSeconds = INITIAL_SECONDS;
+              timerDisplay.textContent = formatTime(totalSeconds);
+              timerDisplay.style.color = '#003f6b';
+      
+              startBtn.textContent = 'Start';
+              startBtn.disabled = false;
+              startBtn.setAttribute('data-state','idle');
+          }
+      
+          // START
+          startBtn.addEventListener('click', function(){
+              var state = startBtn.getAttribute('data-state');
+      
+              if (state === 'idle') {
+                  startBtn.textContent = 'Running...';
+                  startBtn.setAttribute('data-state','running');
+      
+                  timerInterval = setInterval(function(){
+                      totalSeconds--;
+                      timerDisplay.textContent = formatTime(totalSeconds);
+      
+                      if (totalSeconds <= 0) finishTimer();
+                  }, 1000);
+      
+              } else if (state === 'ended') {
+                  stopAlarm();
+                  startBtn.textContent = 'Stopped';
+                  startBtn.disabled = true;
+                  startBtn.setAttribute('data-state','stopped');
+              }
+          });
+      
+          // RESET
+          resetBtn.addEventListener('click', function(){
+              resetTimer();
+          });
+      
+          // init state
+          resetTimer();
+      
+      });
+  ")),
+  
+  # ----- TABS -----
+  shiny::tabsetPanel(
+    
+    # ======== TAB 1 — TEST ========
+    shiny::tabPanel("1. Test",
+                    shiny::div(
+                      style = "display: flex; flex-direction: column; height: 80vh; justify-content: space-between; align-items: center;",
+                      # ----- TOP HALF -----
+                      shiny::div(
+                        style = "flex: 1; width: 100%;display: flex; flex-direction: column; align-items: center; justify-content: center;",
+                        shiny::div(
+                          class = "prediction-card",
+                          style = "background-color: #eef4ff; width: 100%;height: 100%; display: flex; flex-direction: column; justify-content: center;",
+                          shiny::div(
+                            id = "timer_display",
+                            style = "font-size: 48px; font-weight: bold; color: #003f6b; margin-bottom: 20px;",
+                            "06:00"
+                          ),
+                          shiny::div(
+                            style = "display: flex; gap: 20px; justify-content: center;",
+                            shiny::actionButton("timer_start", "Start", class = "btn btn-success btn-lg"),
+                            shiny::actionButton("timer_reset", "Reset", class = "btn btn-secondary btn-lg")
+                          )
+                        )
+                      ),
+                      
+                      # ----- BOTTOM HALF -----
+                      shiny::div(
+                        style = "flex: 1; width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center;",
+                        shiny::div(
+                          class = "input-card",
+                          style = "background-color: #eef4ff; width: 100%; text-align: center; height: 100%; display: flex; flex-direction: column; justify-content: center;",
+                          shiny::tags$style(htmltools::HTML("
+                                  #distance_walked { font-size: 22px; text-align: center; }
+                                  #distance_walked-label { font-size: 22px; text-align: center; }
+                                ")),
+                          
+                          shiny::numericInput(
+                            inputId = "distance_walked",
+                            label = "Walked distance (meters)",
+                            value = NULL,
+                            min = 0,
+                            max = 2000,
+                            step = 1,
+                            width = "100%"
+                          )
+                        )
+                      )
+                    )
     ),
-    shiny::uiOutput("footnotes_container"),
-    shiny::uiOutput("doi_container")
-  ),
-  
-  # table title
-  shiny::br(),
-  DT::DTOutput("dataTable"),
-  shiny::hr(),
-  
-  shiny::div(class = "prediction-card",
-             "Predicted Value",
+    
+    # ======== TAB 2 — PREDICT ========
+    shiny::tabPanel("2. Predict",
+                    shiny::div(
+                      class = "input-card",
+                      shiny::selectInput("equation", "Select Equation", choices = equations, width = "100%"),
+                      shiny::uiOutput("footnotes_container"),
+                      shiny::uiOutput("doi_container")
+                    ),
+                    DT::DTOutput("dataTable"),
+                    shiny::hr(),
+                    shiny::div(class = "prediction-card",
+                               "Predicted Value",
+                               shiny::br(),
+                               shiny::textOutput("prediction", inline = TRUE),
+                               shiny::br(),
+                               shiny::textOutput("percent_predicted", inline = TRUE)
+                    ),
+    ),
+    
+    # ======== TAB 3 — REPORT ========
+    tabPanel("3. Report",
+             shiny::div(style = "margin-top: 40px; text-align: center;",
+                        shiny::actionButton(
+                          "download_pdf_btn",
+                          "Download PDF",
+                          class = "btn btn-primary btn-lg"
+                        ),
+             ),
+    ),
+    
+    # ======== TAB 4 — INFO ========
+    tabPanel("Info",
              shiny::br(),
-             shiny::textOutput("prediction", inline = TRUE)
+             shiny::p("Six-Minute Walk Test App — Information Tab"),
+             shiny::p("Add any documentation or instructions here.")
+    ),
   ),
-  
-  # ----- Bottom download button -----
-  shiny::div(style = "margin-top: 40px; text-align: center;",
-             shiny::actionButton(
-               "download_pdf_btn",
-               "Download PDF",
-               class = "btn btn-primary btn-lg"
-             )
-  )
 )
 
 server <- function(input, output, session) {
   
   edited_data <- shiny::reactiveVal(NULL)
+  
+  
   
   # load data when equation changes
   shiny::observeEvent(input$equation, {
@@ -204,35 +333,84 @@ server <- function(input, output, session) {
                 var timestamp = new Date().toLocaleString();
                 
                 // --------------------------------------------------------
-                // Predicted Value CARD (centered)
+                // Predicted Value + Walked Distance + Percent Predicted
                 // --------------------------------------------------------
+                
+                var walked = parseFloat($('#distance_walked').val()) || 0;
+                
+                var predicted_clean = parseFloat(
+                    prediction.replace(new RegExp('[^0-9.]','g'), '')
+                ) || 0;
+                
+                var percent = (walked > 0 && predicted_clean > 0)
+                    ? ((walked / predicted_clean) * 100).toFixed(1) + '%'
+                    : '';
+                                
                 doc.content.push({
-                  margin: [0, 20, 0, 10],
-                  alignment: 'center',
-                  table: {
-                    widths: ['*'],
-                    body: [
-                      [
+                    margin: [0, 20, 0, 10],
+                    columns: [
+                
+                        // 1) Predicted Value card
                         {
-                          stack: [
-                            { text: 'Predicted Value', fontSize: 14, bold: true, margin: [0, 0, 0, 8] },
-                            { text: prediction, fontSize: 22, bold: true, color: '#003f6b' }
-                          ],
-                          fillColor: '#f2f5f7',
-                          margin: [0, 12, 0, 12],
-                          alignment: 'center'
+                            width: '33%',
+                            table: {
+                                widths: ['*'],
+                                body: [[
+                                    {
+                                        stack: [
+                                            { text: 'Predicted Value', fontSize: 14, bold: true, margin: [0, 0, 0, 8] },
+                                            { text: prediction, fontSize: 22, bold: true, color: '#003f6b' }
+                                        ],
+                                        fillColor: '#f2f5f7',
+                                        margin: [0, 12, 0, 12],
+                                        alignment: 'center'
+                                    }
+                                ]]
+                            },
+                            layout: 'noBorders'
+                        },
+                
+                        // 2) Walked Distance card
+                        {
+                            width: '33%',
+                            table: {
+                                widths: ['*'],
+                                body: [[
+                                    {
+                                        stack: [
+                                            { text: 'Walked Distance', fontSize: 14, bold: true, margin: [0, 0, 0, 8] },
+                                            { text: walked + ' meters', fontSize: 22, bold: true, color: '#003f6b' }
+                                        ],
+                                        fillColor: '#f2f5f7',
+                                        margin: [0, 12, 0, 12],
+                                        alignment: 'center'
+                                    }
+                                ]]
+                            },
+                            layout: 'noBorders'
+                        },
+                
+                        // 3) Percent Predicted card
+                        {
+                            width: '33%',
+                            table: {
+                                widths: ['*'],
+                                body: [[
+                                    {
+                                        stack: [
+                                            { text: '% Predicted', fontSize: 14, bold: true, margin: [0, 0, 0, 8] },
+                                            { text: percent, fontSize: 22, bold: true, color: '#003f6b' }
+                                        ],
+                                        fillColor: '#f2f5f7',
+                                        margin: [0, 12, 0, 12],
+                                        alignment: 'center'
+                                    }
+                                ]]
+                            },
+                            layout: 'noBorders'
                         }
-                      ]
+                
                     ]
-                  },
-                  layout: {
-                    hLineWidth: function(){ return 0; },
-                    vLineWidth: function(){ return 0; },
-                    paddingLeft: function(){ return 15; },
-                    paddingRight: function(){ return 15; },
-                    paddingTop: function(){ return 12; },
-                    paddingBottom: function(){ return 12; }
-                  }
                 });
 
                 doc.content.push({ text: ' ' });
@@ -355,42 +533,30 @@ server <- function(input, output, session) {
     paste0(format(round(pred, 0), nsmall = 0), " meters")
   })
   
-  # ----- Compute prediction range (min–max) -----
-  prediction_range <- shiny::reactive({
+  output$percent_predicted <- shiny::renderText({
     df <- edited_data()
     shiny::req(df)
+    
+    walked <- suppressWarnings(as.numeric(input$distance_walked))
+    if (is.na(walked) || walked <= 0) return("")
     
     df$Coefficient <- suppressWarnings(as.numeric(df$Coefficient))
     df$`Patient's Value` <- suppressWarnings(as.numeric(df$`Patient's Value`))
     
-    # Keep intercept separate
-    intercept <- if ("Intercept" %in% df$Variable) {
-      df$Coefficient[df$Variable == "Intercept"]
-    } else 0
-    
-    df2 <- df[df$Variable != "Intercept", ]
-    
-    # For each coefficient: calculate min and max contribution
-    df2$min_contrib <- ifelse(
-      df2$Coefficient >= 0,
-      df2$Coefficient * min(df2$`Patient's Value`, na.rm = TRUE),
-      df2$Coefficient * max(df2$`Patient's Value`, na.rm = TRUE)
-    )
-    
-    df2$max_contrib <- ifelse(
-      df2$Coefficient >= 0,
-      df2$Coefficient * max(df2$`Patient's Value`, na.rm = TRUE),
-      df2$Coefficient * min(df2$`Patient's Value`, na.rm = TRUE)
-    )
-    
-    min_pred <- sum(df2$min_contrib, na.rm = TRUE) + intercept
-    max_pred <- sum(df2$max_contrib, na.rm = TRUE) + intercept
-    
-    list(
-      min = min_pred,
-      max = max_pred,
-      df_details = df2
-    )
+    pred <- NULL
+    df_no_intercept <- df[!df$Variable %in% c("Intercept"), ]
+    if (any(is.na(df_no_intercept$`Patient's Value`))) {
+      return("")
+    }
+    df$`Patient's Value`[is.na(df$`Patient's Value`)] <- 0
+    df$prod <- df$Coefficient * df$`Patient's Value`
+    if ("Intercept" %in% df$Variable) {
+      intercept_value <- df$Coefficient[df$Variable == "Intercept"]
+      df$prod[df$Variable == "Intercept"] <- intercept_value
+    }
+    pred <- sum(df$prod, na.rm = TRUE)
+    pct <- (walked / pred) * 100
+    paste0(round(pct, 1), "%")
   })
   
   # ----- bottom button triggers DT PDF -----
