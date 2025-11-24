@@ -75,12 +75,19 @@ ui <- shiny::fluidPage(
   
   # Page title
   tags$head(tags$title("Six-Minute Walk Test")),
+  
   shiny::tags$div(
     style = "font-size: 28px; font-weight: bold; margin-top: 20px; margin-bottom: 20px; 
              display: flex; align-items: center; gap: 10px;",
     htmltools::img(src = "favicon_io/favicon-32x32.png", height = "32px"),
     "Six-Minute Walk Test"
   ),
+  
+  shiny::HTML(
+    "<a href=\"https://doi.org/10.5281/zenodo.17663547\" style=\"vertical-align:middle;\"><img src=\"https://zenodo.org/badge/DOI/10.5281/zenodo.17663547.svg\" alt=\"DOI\"  style=\"vertical-align:top;\"></a>"
+  ),
+  shiny::br(),
+  shiny::br(),
   
   tags$script(htmltools::HTML("
       $(document).on('shiny:connected', function() {
@@ -252,21 +259,48 @@ ui <- shiny::fluidPage(
     ),
     
     # ======== TAB 3 — REPORT ========
-    tabPanel("3. Report",
-             shiny::div(style = "margin-top: 40px; text-align: center;",
-                        shiny::actionButton(
-                          "download_pdf_btn",
-                          "Download PDF",
-                          class = "btn btn-primary btn-lg"
-                        ),
-             ),
+    shiny::tabPanel("3. Report",
+                    shiny::div(style = "margin-top: 40px; text-align: center;",
+                               shiny::actionButton(
+                                 "download_pdf_btn",
+                                 "Download PDF",
+                                 class = "btn btn-primary btn-lg"
+                               ),
+                    ),
     ),
     
-    # ======== TAB 4 — INFO ========
-    tabPanel("Info",
-             shiny::br(),
-             shiny::p("Six-Minute Walk Test App — Information Tab"),
-             shiny::p("Add any documentation or instructions here.")
+    # ======== TAB 4 — Group ========
+    shiny::tabPanel(
+      title = list(fontawesome::fa("people-group")),
+      shiny::br(),
+      shiny::HTML(
+        "<a href=\"mailto:arthurde@souunisuam.com.br\">Arthur Ferreira, DSc</a>"
+      ),
+      shiny::HTML("<b> (Developer)</b>"),
+      shiny::br(),
+      shiny::br(),
+      shiny::HTML(
+        "<a href=\"mailto:map@souunisuam.com.br\">Mariana Pereira, MSc</a>; <a href=\"mailto:gabrielbalira90@gmail.com\">Gabriel Balira, BSc</a>;"
+      ),
+      shiny::HTML("<b> (Contributors)</b>"),
+      shiny::br(),
+      shiny::br(),
+      shiny::HTML(
+        "<a href=\"https://www.unisuam.edu.br/programa-pos-graduacao-ciencias-da-reabilitacao\">PPGCR</a> | Programa de Pós-graduação em Ciências da Reabilitação, Centro Universitário Augusto Motta, Rio de Janeiro, RJ, Brazil"
+      ),
+      shiny::HTML("<b> (Affiliation)</b>"),
+      shiny::br(),
+      shiny::br(),
+      shiny::HTML("<b>License</b>"),
+      shiny::HTML(
+        "This work is licensed under an <a rel=\"license\" data-spdx=\"Apache-2.0\" href=\"https://www.apache.org/licenses/LICENSE-2.0\">Apache License 2.0</a>."
+      ),
+      shiny::br(),
+      shiny::br(),
+      shiny::HTML("<b>Cite as</b>"),
+      shiny::HTML(
+        "Arthur de Sá Ferreira, & PPGCR. (2025). FerreiraAS/UsIA: v1.0.0 (v1.0.0). Zenodo. h<a tref=\"htps://doi.org/10.5281/zenodo.17663547\">ttps://doi.org/10.5281/zenodo.17663547</a>."
+      ),
     ),
   ),
 )
