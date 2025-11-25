@@ -300,14 +300,14 @@ ui <- shiny::fluidPage(
       shiny::br(),
       shiny::br(),
       shiny::HTML(
-        "<b>Gabriel Batista Balira, BSc</b> (Contributor)"),
+        "<b>Gabriel Batista de Lira, BSc</b> (Contributor)"),
       shiny::br(),
       shiny::HTML(
         '<a id="cy-effective-orcid-url" class="underline" 
-         href="https://orcid.org/0000-0001-7014-2002"
+         href="https://orcid.org/0009-0001-6056-4903"
          target="orcid.widget" rel="me noopener noreferrer" style="vertical-align: top">
          <img src="https://orcid.org/sites/default/files/images/orcid_16x16.png" style="width: 1em; margin-inline-start: 0.5em" alt="ORCID iD icon"/>
-         https://orcid.org/0000-0001-7014-2002
+         https://orcid.org/0009-0001-6056-4903
          </a>'
       ),
       shiny::br(),
