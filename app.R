@@ -556,8 +556,7 @@ server <- function(input, output, session) {
       gsub("Country", "", df$Coefficient[grepl("Country", df$Variable, ignore.case = TRUE)]),
       gsub("Sample Size", "", df$Coefficient[grepl("Sample Size", df$Variable, ignore.case = TRUE)])
     )
-    print(foot)
-    
+
     shiny::div(
       id = "footnotes",
       htmltools::HTML(paste0(
