@@ -40,7 +40,7 @@ ui <- shiny::fluidPage(
   # Card styles
   tags$head(tags$style(htmltools::HTML("
     .input-card {
-      background-color: #f5f7fa;
+      background-color: #eef4ff;
       border-radius: 12px;
       padding: 20px;
       margin-top: 25px;
@@ -48,7 +48,7 @@ ui <- shiny::fluidPage(
       box-shadow: 0 2px 6px rgba(0,0,0,0.15);
     }
     .prediction-card {
-      background-color: #f5f7fa;
+      background-color: #eef4ff;
       border-radius: 12px;
       padding: 20px;
       margin-top: 25px;
@@ -248,6 +248,10 @@ ui <- shiny::fluidPage(
                       shiny::uiOutput("doi_container")
                     ),
                     DT::DTOutput("dataTable"),
+    ),
+    
+    # ======== TAB 3 — REPORT ========
+    shiny::tabPanel("3. Report",
                     shiny::hr(),
                     shiny::div(class = "prediction-card",
                                "Predicted Value",
@@ -256,10 +260,6 @@ ui <- shiny::fluidPage(
                                shiny::br(),
                                shiny::textOutput("percent_predicted", inline = TRUE)
                     ),
-    ),
-    
-    # ======== TAB 3 — REPORT ========
-    shiny::tabPanel("3. Report",
                     shiny::div(style = "margin-top: 40px; text-align: center;",
                                shiny::actionButton(
                                  "download_pdf_btn",
@@ -271,24 +271,60 @@ ui <- shiny::fluidPage(
     
     # ======== TAB 4 — Group ========
     shiny::tabPanel(
-      title = list(fontawesome::fa("people-group")),
+      title = list(fontawesome::fa("people-group"), "Credits"),
       shiny::br(),
       shiny::HTML(
-        "<a href=\"mailto:arthurde@souunisuam.com.br\">Arthur Ferreira, DSc</a>"
+        "<b>Arthur de Sá Ferreira, DSc</b> (Developer)"),
+      shiny::br(),
+      shiny::HTML(
+        '<a id="cy-effective-orcid-url" class="underline" 
+         href="https://orcid.org/0000-0001-7014-2002"
+         target="orcid.widget" rel="me noopener noreferrer" style="vertical-align: top">
+         <img src="https://orcid.org/sites/default/files/images/orcid_16x16.png" style="width: 1em; margin-inline-start: 0.5em" alt="ORCID iD icon"/>
+         https://orcid.org/0000-0001-7014-2002
+         </a>'
       ),
-      shiny::HTML("<b> (Developer)</b>"),
       shiny::br(),
       shiny::br(),
       shiny::HTML(
-        "<a href=\"mailto:map@souunisuam.com.br\">Mariana Pereira, MSc</a>; <a href=\"mailto:gabrielbalira90@gmail.com\">Gabriel Balira, BSc</a>;"
+        "<b>Mariana Almeida, MSc</b> (Contributor)"),
+      shiny::br(),
+      shiny::HTML(
+        '<a id="cy-effective-orcid-url" class="underline" 
+         href="https://orcid.org/0000-0001-7014-2002"
+         target="orcid.widget" rel="me noopener noreferrer" style="vertical-align: top">
+         <img src="https://orcid.org/sites/default/files/images/orcid_16x16.png" style="width: 1em; margin-inline-start: 0.5em" alt="ORCID iD icon"/>
+         https://orcid.org/0000-0001-7014-2002
+         </a>'
       ),
-      shiny::HTML("<b> (Contributors)</b>"),
       shiny::br(),
       shiny::br(),
       shiny::HTML(
-        "<a href=\"https://www.unisuam.edu.br/programa-pos-graduacao-ciencias-da-reabilitacao\">PPGCR</a> | Programa de Pós-graduação em Ciências da Reabilitação, Centro Universitário Augusto Motta, Rio de Janeiro, RJ, Brazil"
+        "<b>Gabriel Batista Balira, BSc</b> (Contributor)"),
+      shiny::br(),
+      shiny::HTML(
+        '<a id="cy-effective-orcid-url" class="underline" 
+         href="https://orcid.org/0000-0001-7014-2002"
+         target="orcid.widget" rel="me noopener noreferrer" style="vertical-align: top">
+         <img src="https://orcid.org/sites/default/files/images/orcid_16x16.png" style="width: 1em; margin-inline-start: 0.5em" alt="ORCID iD icon"/>
+         https://orcid.org/0000-0001-7014-2002
+         </a>'
       ),
-      shiny::HTML("<b> (Affiliation)</b>"),
+      shiny::br(),
+      shiny::br(),
+      shiny::HTML(
+        "<b>Centro Universitário Augusto Motta</b> (Affiliation) <br>
+        Programa de Pós-graduação em Ciências da Reabilitação <br>
+        Rio de Janeiro, RJ, Brazil"),
+      shiny::br(),
+      shiny::HTML(
+        '<a
+         href="https://ror.org/02ab1bc46"
+         style="vertical-align: top">
+         <img src="https://ror.org/assets/ror-logo-small-671ea83ad5060ad5c0c938809aab4731.png" style="width: 1em; margin-inline-start: 0.5em"/>
+         https://ror.org/02ab1bc46
+         </a>'
+      ),
       shiny::br(),
       shiny::br(),
       shiny::HTML("<b>License</b>"),
@@ -297,10 +333,12 @@ ui <- shiny::fluidPage(
       ),
       shiny::br(),
       shiny::br(),
-      shiny::HTML("<b>Cite as</b>"),
+      shiny::HTML("<b>Citation</b>"),
       shiny::HTML(
         "Arthur de Sá Ferreira, & PPGCR. (2025). FerreiraAS/UsIA: v1.0.0 (v1.0.0). Zenodo. h<a tref=\"htps://doi.org/10.5281/zenodo.17663547\">ttps://doi.org/10.5281/zenodo.17663547</a>."
       ),
+      shiny::br(),
+      shiny::br(),
     ),
   ),
 )
@@ -309,8 +347,6 @@ server <- function(input, output, session) {
   
   edited_data <- shiny::reactiveVal(NULL)
   
-  
-  
   # load data when equation changes
   shiny::observeEvent(input$equation, {
     shiny::req(input$equation)
@@ -318,9 +354,16 @@ server <- function(input, output, session) {
     df <- data[, c(1, which(colnames(data) == input$equation))]
     colnames(df) <- c("Variable", "Coefficient")
     
-    # remove doi row + first 2 footnotes
+    # remove Year row
+    df <- df[!grepl("Year", df$Variable, ignore.case = TRUE), ]
+    # remove DOI row
     df <- df[!grepl("DOI", df$Variable, ignore.case = TRUE), ]
-    df <- df[-c(1,2), ]
+    # remove link row
+    df <- df[!grepl("Link", df$Variable, ignore.case = TRUE), ]
+    # remove Sample Size
+    df <- df[!grepl("Sample Size", df$Variable, ignore.case = TRUE), ]
+    # remove Country
+    df <- df[!grepl("Country", df$Variable, ignore.case = TRUE), ]
     
     df <- df[!is.na(df$Coefficient), ]
     df$`Patient's Value` <- NA
@@ -508,15 +551,19 @@ server <- function(input, output, session) {
     
     df <- data[, c(1, which(colnames(data) == input$equation))]
     colnames(df) <- c("Variable", "Coefficient")
-    
-    foot <- df[1:2, ]
+    # get Country and Sample Size from df
+    foot <- c(
+      gsub("Country", "", df$Coefficient[grepl("Country", df$Variable, ignore.case = TRUE)]),
+      gsub("Sample Size", "", df$Coefficient[grepl("Sample Size", df$Variable, ignore.case = TRUE)])
+    )
+    print(foot)
     
     shiny::div(
       id = "footnotes",
       htmltools::HTML(paste0(
-        "Footnotes: ",
-        foot[1,1], ": ", round(as.numeric(foot[1,2]), 0), ", ",
-        foot[2,1], ": ", foot[2,2]
+        "Country: ", foot[1],
+        "; ",
+        "Sample Size: ", foot[2]
       ))
     )
   })
@@ -530,14 +577,27 @@ server <- function(input, output, session) {
     
     doi_row <- df[grepl("DOI", df$Variable, ignore.case = TRUE), ]
     doi_value <- as.character(doi_row$Coefficient[1])
+    link_row <- df[grepl("Link", df$Variable, ignore.case = TRUE), ]
+    link_value <- as.character(link_row$Coefficient[1])
     
-    shiny::div(
-      id = "doi",
-      htmltools::HTML(sprintf(
-        'DOI: <a href="https://doi.org/%s" target="_blank">%s</a>',
-        doi_value, doi_value
-      ))
-    )
+    # If DOI is NA, use the Link column
+    if (is.na(doi_value)) {
+      shiny::div(
+        id = "doi",
+        htmltools::HTML(sprintf(
+          'Link: <a href="%s" target="_blank">%s</a>',
+          link_value, link_value
+        ))
+      )
+    } else {
+      shiny::div(
+        id = "doi",
+        htmltools::HTML(sprintf(
+          'DOI: <a href="https://doi.org/%s" target="_blank">%s</a>',
+          doi_value, doi_value
+        ))
+      )
+    }
   })
   
   # prediction
