@@ -287,14 +287,14 @@ ui <- shiny::fluidPage(
       shiny::br(),
       shiny::br(),
       shiny::HTML(
-        "<b>Mariana Almeida, MSc</b> (Contributor)"),
+        "<b>Mariana de Almeida Pereira, MSc</b> (Contributor)"),
       shiny::br(),
       shiny::HTML(
         '<a id="cy-effective-orcid-url" class="underline" 
-         href="https://orcid.org/0000-0001-7014-2002"
+         href="https://orcid.org/0009-0004-4179-3489"
          target="orcid.widget" rel="me noopener noreferrer" style="vertical-align: top">
          <img src="https://orcid.org/sites/default/files/images/orcid_16x16.png" style="width: 1em; margin-inline-start: 0.5em" alt="ORCID iD icon"/>
-         https://orcid.org/0000-0001-7014-2002
+         https://orcid.org/0009-0004-4179-3489
          </a>'
       ),
       shiny::br(),
