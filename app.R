@@ -14,8 +14,8 @@ if (dir.exists("favicon_io")) {
 # rsconnect::showLogs()
 
 # read XLSX
-data <- readxl::read_xlsx("0208 Aggregation published models.xlsx")
-equations <- colnames(data)[-1]
+data <- readxl::read_xlsx("models.xlsx")
+equations <- colnames(data)[-c(1:4)]
 # sort by name
 equations <- sort(equations)
 
@@ -351,8 +351,8 @@ server <- function(input, output, session) {
   shiny::observeEvent(input$equation, {
     shiny::req(input$equation)
     
-    df <- data[, c(1, which(colnames(data) == input$equation))]
-    colnames(df) <- c("Variable", "Coefficient")
+    df <- data[, c(1, 3, which(colnames(data) == input$equation))]
+    colnames(df) <- c("Variable", "Unit", "Coefficient")
     
     # remove Year row
     df <- df[!grepl("Year", df$Variable, ignore.case = TRUE), ]
@@ -366,7 +366,7 @@ server <- function(input, output, session) {
     df <- df[!grepl("Country", df$Variable, ignore.case = TRUE), ]
     
     df <- df[!is.na(df$Coefficient), ]
-    df$`Patient's Value` <- NA
+    df$`Value` <- NA
     
     edited_data(df)
   })
@@ -378,7 +378,7 @@ server <- function(input, output, session) {
     DT::datatable(
       edited_data(),
       extensions = "Buttons",
-      editable = list(target = "cell", columns = 3),
+      editable = list(target = "cell", columns = 4),
       rownames = FALSE,
       class = "compact row-border",
       options = list(
@@ -556,7 +556,7 @@ server <- function(input, output, session) {
       gsub("Country", "", df$Coefficient[grepl("Country", df$Variable, ignore.case = TRUE)]),
       gsub("Sample Size", "", df$Coefficient[grepl("Sample Size", df$Variable, ignore.case = TRUE)])
     )
-
+    
     shiny::div(
       id = "footnotes",
       htmltools::HTML(paste0(
@@ -605,16 +605,16 @@ server <- function(input, output, session) {
     shiny::req(df)
     
     df$Coefficient <- suppressWarnings(as.numeric(df$Coefficient))
-    df$`Patient's Value` <- suppressWarnings(as.numeric(df$`Patient's Value`))
+    df$`Value` <- suppressWarnings(as.numeric(df$`Value`))
     
     df_no_intercept <- df[!df$Variable %in% c("Intercept"), ]
     
-    if (any(is.na(df_no_intercept$`Patient's Value`))) {
+    if (any(is.na(df_no_intercept$`Value`))) {
       return("")
     }
     
-    df$`Patient's Value`[is.na(df$`Patient's Value`)] <- 0
-    df$prod <- df$Coefficient * df$`Patient's Value`
+    df$`Value`[is.na(df$`Value`)] <- 0
+    df$prod <- df$Coefficient * df$`Value`
     
     if ("Intercept" %in% df$Variable) {
       intercept_value <- df$Coefficient[df$Variable == "Intercept"]
@@ -634,15 +634,15 @@ server <- function(input, output, session) {
     if (is.na(walked) || walked <= 0) return("")
     
     df$Coefficient <- suppressWarnings(as.numeric(df$Coefficient))
-    df$`Patient's Value` <- suppressWarnings(as.numeric(df$`Patient's Value`))
+    df$`Value` <- suppressWarnings(as.numeric(df$`Value`))
     
     pred <- NULL
     df_no_intercept <- df[!df$Variable %in% c("Intercept"), ]
-    if (any(is.na(df_no_intercept$`Patient's Value`))) {
+    if (any(is.na(df_no_intercept$`Value`))) {
       return("")
     }
-    df$`Patient's Value`[is.na(df$`Patient's Value`)] <- 0
-    df$prod <- df$Coefficient * df$`Patient's Value`
+    df$`Value`[is.na(df$`Value`)] <- 0
+    df$prod <- df$Coefficient * df$`Value`
     if ("Intercept" %in% df$Variable) {
       intercept_value <- df$Coefficient[df$Variable == "Intercept"]
       df$prod[df$Variable == "Intercept"] <- intercept_value
