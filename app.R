@@ -5,6 +5,11 @@ if (!dir.exists(dir.name)) {
 }
 shiny::addResourcePath(prefix = "www", directoryPath = "www")
 
+# create results folder
+if (!dir.exists(file.path(getwd(), "results"))){
+  dir.create(file.path(getwd(), "results"), showWarnings = FALSE)
+}
+
 # copy favicon folder to the www dir
 if (dir.exists("favicon_io")) {
   R.utils::copyDirectory("favicon_io", file.path(dir.name, "favicon_io"))
@@ -374,6 +379,8 @@ server <- function(input, output, session) {
     df <- df[!grepl("Sample Size", df$Variable, ignore.case = TRUE), ]
     # remove Sex scope
     df <- df[!grepl("Sex scope", df$Variable, ignore.case = TRUE), ]
+    # remove Sex code female
+    df <- df[!grepl("Sex code female", df$Variable, ignore.case = TRUE), ]
     # remove Country
     df <- df[!grepl("Country", df$Variable, ignore.case = TRUE), ]
     

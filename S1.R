@@ -12,8 +12,8 @@ library(ggplot2)
 # ===============================
 # Output dir
 # ===============================
-if (!dir.exists("S1")) {
-  dir.create("S1")
+if (!dir.exists("results")) {
+  dir.create("results")
 }
 
 # ===============================
@@ -21,8 +21,12 @@ if (!dir.exists("S1")) {
 # ===============================
 df <- readxl::read_excel(
   "models.xlsx",
-  .name_repair = "minimal"
+  col_names = FALSE
 )
+
+col_names <- df[1, ]
+colnames(df) <- as.character(col_names)
+df <- df[-1, ]  # remove header row
 
 # ===============================
 # 2. Identify equation columns + create stable keys
@@ -47,7 +51,7 @@ key_to_label <- setNames(equation_lookup$label, equation_lookup$key)
 # ===============================
 # 3. Variables to ignore
 # ===============================
-ignore_vars <- c("Year", "DOI", "Link", "Sample size", "Sex scope", "Country", "Intercept")
+ignore_vars <- c("Year", "DOI", "Link", "Sample size", "Sex scope", "Sex code female", "Country", "Intercept")
 
 # ===============================
 # 4. Function: parameters used by each equation (keys)
@@ -121,7 +125,7 @@ officer::read_docx() %>%
     style = "table_template"
   ) %>%
   officer::body_end_section_landscape() %>%
-  print(target = file.path("S1", "Table S1 - Summary of Parameter Sets.docx"))
+  print(target = file.path("results", "Table S1 - Summary of Parameter Sets.docx"))
 
 # ===============================
 # 8. Create binary parameter matrix (keys)
@@ -261,7 +265,7 @@ heatmap_plot <- ggplot2::ggplot(
 # 14. Save heatmap
 # ===============================
 ggplot2::ggsave(
-  file.path("S1", "Figure S1 - Parameter Usage Heatmap.tiff"),
+  file.path("results", "Figure 1.tiff"),
   plot = heatmap_plot,
   width = 10,
   height = 5,
