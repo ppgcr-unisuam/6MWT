@@ -459,8 +459,8 @@ ggplot2::ggsave(
   filename = file.path(getwd(), "results", "Figure 4.tiff"),
   plot = multipanel_plot,
   device = "tiff",
-  width = 15,
-  height = 15,
+  width = 10,
+  height = 10,
   units = "in",
   dpi = 300
 )
