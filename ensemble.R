@@ -378,7 +378,7 @@ best_ensembles <- results_ensemble %>%
 # save best ensembles
 write.csv(
   best_ensembles,
-  file.path(getwd(), results_folder, "best_ensembles_natalia_oliveira_2023.csv"),
+  file.path(getwd(), results_folder, "best_ensembles.csv"),
   row.names = FALSE
 )
 

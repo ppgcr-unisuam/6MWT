@@ -127,6 +127,7 @@ dataset <- dataset |>
     Corredor = 30
   )
 
+# -------- MODEL PARAMETERS --------
 B <- 100
 
 source("ensemble.R")

@@ -49,6 +49,7 @@ raw_dataset <- raw_dataset %>%
 
 dataset <- raw_dataset
 
+# -------- MODEL PARAMETERS --------
 B <- 1000
 
 source("ensemble.R")
