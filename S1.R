@@ -12,8 +12,8 @@ library(ggplot2)
 # ===============================
 # Output dir
 # ===============================
-if (!dir.exists("results")) {
-  dir.create("results")
+if (!dir.exists("datasets")) {
+  dir.create("datasets")
 }
 
 # ===============================
@@ -125,7 +125,7 @@ officer::read_docx() %>%
     style = "table_template"
   ) %>%
   officer::body_end_section_landscape() %>%
-  print(target = file.path("results", "Table S1 - Summary of Parameter Sets.docx"))
+  print(target = file.path("datasets", "Table S1 - Summary of Parameter Sets.docx"))
 
 # ===============================
 # 8. Create binary parameter matrix (keys)
@@ -265,7 +265,7 @@ heatmap_plot <- ggplot2::ggplot(
 # 14. Save heatmap
 # ===============================
 ggplot2::ggsave(
-  file.path("results", "Figure 1.tiff"),
+  file.path("datasets", "Figure 1.tiff"),
   plot = heatmap_plot,
   width = 10,
   height = 5,
