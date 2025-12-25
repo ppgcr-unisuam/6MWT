@@ -15,7 +15,17 @@ if (dir.exists("favicon_io")) {
 
 # read XLSX
 data <- readxl::read_xlsx("models.xlsx")
+
+# rename data columns: read again without column names, then set names
+rawdata <- readxl::read_xlsx("models.xlsx", col_names = FALSE)
+labels <- paste0(rawdata[1, ], " (", rawdata[which(rawdata[, 1] == "Sex scope"), ], ")")
+colnames(data) <- labels
+# get equations names
 equations <- colnames(data)[-c(1:4)]
+# unique keys
+eq_keys <- sprintf("%02d", seq_along(equations))
+equations <- paste0(eq_keys, " - ", equations)
+names(data) <- c(names(data)[1:4], equations)
 # sort by name
 equations <- sort(equations)
 
@@ -362,6 +372,8 @@ server <- function(input, output, session) {
     df <- df[!grepl("Link", df$Variable, ignore.case = TRUE), ]
     # remove Sample Size
     df <- df[!grepl("Sample Size", df$Variable, ignore.case = TRUE), ]
+    # remove Sex scope
+    df <- df[!grepl("Sex scope", df$Variable, ignore.case = TRUE), ]
     # remove Country
     df <- df[!grepl("Country", df$Variable, ignore.case = TRUE), ]
     

@@ -2,64 +2,102 @@
 # Libraries
 # ===============================
 library(dplyr)
+library(tidyr)
+library(purrr)
+library(readxl)
+library(tibble)
+library(officer)
+library(ggplot2)
 
 # ===============================
 # Output dir
 # ===============================
-if (!dir.exists("output")) {
-  dir.create("output")
+if (!dir.exists("S1")) {
+  dir.create("S1")
 }
 
 # ===============================
-# 1. Read file
+# 1. Read file (preserve original column names)
 # ===============================
-df <- readxl::read_excel("models.xlsx")
+df <- readxl::read_excel(
+  "models.xlsx",
+  .name_repair = "minimal"
+)
 
 # ===============================
-# 2. Identify equation columns
+# 2. Identify equation columns + create stable keys
 # ===============================
-equations <- colnames(df)[-c(1:5)]
+eq_cols_original <- colnames(df)[-c(1:5)]
+equation_key <- sprintf("EQ%02d", seq_along(eq_cols_original))  # EQ001, EQ002...
+
+equation_lookup <- tibble::tibble(
+  key   = equation_key,
+  label = eq_cols_original
+)
+
+# Rename equation columns in df to safe keys
+colnames(df)[-c(1:5)] <- equation_key
+
+# From now on, ALWAYS use keys as equation identifiers
+equations <- equation_key
+
+# Helper: key -> label
+key_to_label <- setNames(equation_lookup$label, equation_lookup$key)
 
 # ===============================
 # 3. Variables to ignore
 # ===============================
-ignore_vars <- c("Year", "Country", "DOI", "Link", "Sample size", "Intercept")
+ignore_vars <- c("Year", "DOI", "Link", "Sample size", "Sex scope", "Country", "Intercept")
 
 # ===============================
-# 4. Function: parameters used by each equation
+# 4. Function: parameters used by each equation (keys)
 # ===============================
-params_used_in_equation <- function(eq_col) {
+params_used_in_equation <- function(eq_col_key) {
   df %>%
     dplyr::filter(!Variable %in% ignore_vars) %>%
-    dplyr::filter(!is.na(.data[[eq_col]]) & .data[[eq_col]] != "") %>%
+    dplyr::filter(!is.na(.data[[eq_col_key]]) & .data[[eq_col_key]] != "") %>%
+    dplyr::distinct(Variable) %>%
     dplyr::pull(Variable) %>%
     sort()
 }
 
 # ===============================
-# 5. List of parameters per equation
+# 5. List of parameters per equation (keys)
 # ===============================
 param_sets <- purrr::map(equations, params_used_in_equation)
+names(param_sets) <- equations
 
 # ===============================
-# 6. Summary table
+# 6. Summary table (grouped by variable set)
+#    IMPORTANT: sort/group before mapping keys -> labels
 # ===============================
-summary_table <- tibble::tibble(
-  Equation    = equations,
+summary_table_key <- tibble::tibble(
+  EquationKey = equations,
   Variables   = purrr::map_chr(param_sets, ~ paste(.x, collapse = ", ")),
   Predictors  = purrr::map_int(param_sets, length)
 ) %>%
   dplyr::group_by(Variables, Predictors) %>%
   dplyr::summarise(
     Equations = dplyr::n(),
-    Authors   = paste(Equation, collapse = ", "),
-    .groups = "drop"
+    Keys      = paste(EquationKey, collapse = ", "),
+    .groups   = "drop"
   ) %>%
   dplyr::arrange(dplyr::desc(Predictors), dplyr::desc(Equations))
 
-# reorder columns
-summary_table <- summary_table %>%
-  dplyr::select(Authors, Equations, Predictors, Variables)
+# Convert "Keys" (comma-separated) -> "Authors" labels (comma-separated)
+summary_table <- summary_table_key %>%
+  dplyr::mutate(
+    Authors = purrr::map_chr(
+      strsplit(Keys, ",\\s*"),
+      ~ paste(unname(key_to_label[.x]), collapse = ", ")
+    )
+  ) %>%
+  dplyr::select(
+    Authors,
+    Equations,
+    Predictors,
+    Variables
+  )
 
 # ===============================
 # 7. Save Word table (landscape)
@@ -83,48 +121,77 @@ officer::read_docx() %>%
     style = "table_template"
   ) %>%
   officer::body_end_section_landscape() %>%
-  print(target = file.path("output", "Table S1 - Summary of Parameter Sets.docx"))
+  print(target = file.path("S1", "Table S1 - Summary of Parameter Sets.docx"))
 
 # ===============================
-# 8. Create binary parameter matrix
+# 8. Create binary parameter matrix (keys)
 # ===============================
-param_matrix <- data.frame(
-  Variable = unique(unlist(param_sets))
+param_matrix <- tibble::tibble(
+  Variable = sort(unique(unlist(param_sets)))
 )
 
 for (eq in equations) {
   param_matrix[[eq]] <- ifelse(
-    param_matrix$Variable %in% params_used_in_equation(eq),
+    param_matrix$Variable %in% param_sets[[eq]],
     1, 0
   )
 }
 
+# check Sex = 1 if Sex scope is used anywhere
+
 # ===============================
-# 9. Order equations by number of parameters
+# 9. Order equations by number of parameters (keys)
 # ===============================
-equation_sums <- colSums(param_matrix[, -1, drop = FALSE])
+equation_sums <- colSums(as.data.frame(param_matrix[, -1, drop = FALSE]))
 equations_sorted <- names(sort(equation_sums, decreasing = TRUE))
 
 param_matrix_sorted <- param_matrix %>%
   dplyr::select(Variable, dplyr::all_of(equations_sorted))
 
 # ===============================
-# 10. Melt matrix for ggplot
+# 9.5 Order variables by number of equations using them
 # ===============================
-melted_param_matrix <- reshape2::melt(
-  param_matrix_sorted,
-  id.vars = "Variable",
-  variable.name = "Equation"
+variable_sums <- rowSums(
+  as.data.frame(param_matrix_sorted[, -1, drop = FALSE])
 )
 
-melted_param_matrix <- melted_param_matrix %>%
+param_matrix_sorted <- param_matrix_sorted %>%
+  dplyr::mutate(n_equations = variable_sums) %>%
+  dplyr::arrange(dplyr::desc(n_equations)) %>%
+  dplyr::select(-n_equations)
+
+# add model name (equation label) as first row
+param_matrix_sorted <- rbind(
+  c("Reference", equation_lookup$label[match(equations_sorted, equation_lookup$key)]),
+  param_matrix_sorted
+)
+
+# collapse identical columns
+param_matrix_sorted <- param_matrix_sorted[, !duplicated(as.list(param_matrix_sorted))]
+# drop added row
+param_matrix_sorted <- param_matrix_sorted[-1, ]
+equation_lookup <- equation_lookup[!duplicated(equation_lookup$label), ]
+equations_sorted <- colnames(param_matrix_sorted)[-1]
+
+# ===============================
+# 10. Long format for ggplot (no sanitization)
+# ===============================
+melted_param_matrix <- param_matrix_sorted %>%
+  tidyr::pivot_longer(
+    -Variable,
+    names_to = "Equation",
+    values_to = "value"
+  ) %>%
   dplyr::mutate(
     Equation = factor(Equation, levels = equations_sorted),
-    Variable = factor(Variable, levels = rev(unique(Variable)))
+    Variable = factor(
+      Variable,
+      levels = rev(param_matrix_sorted$Variable)
+    )
   )
 
 # ===============================
-# 11. Labels: number of parameters per equation
+# 11. Labels: number of parameters per equation (keys)
 # ===============================
 label_df <- data.frame(
   Equation = factor(equations_sorted, levels = equations_sorted),
@@ -144,7 +211,7 @@ eq_df <- data.frame(
 vline_positions <- eq_df$pos[-1][diff(eq_df$n_params) != 0] - 0.5
 
 # ===============================
-# 13. Plot heatmap
+# 13. Plot heatmap (x-axis shows original labels)
 # ===============================
 heatmap_plot <- ggplot2::ggplot(
   melted_param_matrix,
@@ -169,6 +236,9 @@ heatmap_plot <- ggplot2::ggplot(
   ggplot2::scale_fill_manual(
     values = c("0" = "white", "1" = "grey")
   ) +
+  ggplot2::scale_x_discrete(
+    labels = key_to_label[equations_sorted]
+  ) + 
   ggplot2::scale_y_discrete(
     expand = ggplot2::expansion(add = c(0, 2))
   ) +
@@ -179,7 +249,6 @@ heatmap_plot <- ggplot2::ggplot(
     axis.title.y = ggplot2::element_text(face = "bold"),
     legend.position = "none",
     panel.grid = ggplot2::element_blank(),
-    panel.clip = "off",
     plot.margin = ggplot2::margin(10, 10, 20, 10)
   ) +
   ggplot2::labs(
@@ -192,7 +261,7 @@ heatmap_plot <- ggplot2::ggplot(
 # 14. Save heatmap
 # ===============================
 ggplot2::ggsave(
-  file.path("output", "Figure S1 - Parameter Usage Heatmap.tiff"),
+  file.path("S1", "Figure S1 - Parameter Usage Heatmap.tiff"),
   plot = heatmap_plot,
   width = 10,
   height = 5,
