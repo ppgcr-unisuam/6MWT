@@ -1,3 +1,6 @@
+# clear all
+rm(list = ls())
+
 # create directory for results
 if (!dir.exists(file.path(getwd(), "datasets", "Pinto 2019"))) {
   dir.create(file.path(getwd(), "datasets", "Pinto 2019"),
