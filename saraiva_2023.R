@@ -1,6 +1,10 @@
 # clear all
 rm(list = ls())
 
+# load libraries
+library(dplyr)
+options(warn = -1)
+
 # create directory for results
 if (!dir.exists(file.path(getwd(), "datasets", "Saraiva 2023"))) {
   dir.create(file.path(getwd(), "datasets", "Saraiva 2023"),
@@ -25,7 +29,7 @@ raw_dataset <- raw_dataset[-1, ]
 
 # rename and convert variables to numeric
 raw_dataset <- raw_dataset |>
-  rename(
+  dplyr::rename(
     Idade = `Idade (anos)`,
     Peso = `Peso (kg)`,
     Altura = `Altura (m)`,

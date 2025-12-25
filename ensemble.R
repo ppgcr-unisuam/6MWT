@@ -2,10 +2,7 @@
 # in which random subsets of compatible published prediction equations are repeatedly sampled, 
 # aggregated, and evaluated across bootstrap resamples of individual participant data.
 
-# -------- LIBRARIES AND SEED --------
-library(dplyr)
 set.seed(1234)
-options(warn = -1)
 
 # -------- DATASET READ AND CLEAN --------
 # read dataset from Nathalia Oliveira et al. (2023)
@@ -486,15 +483,15 @@ error_summary_ci <- results_ensemble %>%
     .groups = "drop"
   )
 
-p4 <- ggplot2::ggplot(error_summary_ci, aes(x = n_models)) +
-  ggplot2::geom_line(aes(y = mae_mean, color = "MAE"), linewidth = 1) +
+p4 <- ggplot2::ggplot(error_summary_ci, ggplot2::aes(x = n_models)) +
+  ggplot2::geom_line(ggplot2::aes(y = mae_mean, color = "MAE"), linewidth = 1) +
   ggplot2::geom_ribbon(
-    aes(ymin = mae_lwr, ymax = mae_upr, fill = "MAE"),
+    ggplot2::aes(ymin = mae_lwr, ymax = mae_upr, fill = "MAE"),
     alpha = 0.25
   ) +
-  ggplot2::geom_line(aes(y = rmse_mean, color = "RMSE"), linewidth = 1) +
+  ggplot2::geom_line(ggplot2::aes(y = rmse_mean, color = "RMSE"), linewidth = 1) +
   ggplot2::geom_ribbon(
-    aes(ymin = rmse_lwr, ymax = rmse_upr, fill = "RMSE"),
+    ggplot2::aes(ymin = rmse_lwr, ymax = rmse_upr, fill = "RMSE"),
     alpha = 0.25
   ) +
   ggplot2::labs(

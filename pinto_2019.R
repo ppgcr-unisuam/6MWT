@@ -1,6 +1,10 @@
 # clear all
 rm(list = ls())
 
+# load libraries
+library(dplyr)
+options(warn = -1)
+
 # create directory for results
 if (!dir.exists(file.path(getwd(), "datasets", "Pinto 2019"))) {
   dir.create(file.path(getwd(), "datasets", "Pinto 2019"),
@@ -22,7 +26,7 @@ raw_dataset_1 <- readxl::read_xlsx(file.path(
 
 # rename and convert variables to numeric
 raw_dataset_1 <- raw_dataset_1 |>
-  rename(
+  dplyr::rename(
     Sexo = `SEXO`,
     Idade = `IDADE`,
     Altura = `ALTURA`,
@@ -131,7 +135,7 @@ dataset <- dataset |>
   )
 
 # -------- MODEL PARAMETERS --------
-B <- 100
+B <- 1000
 
 source("ensemble.R")
 
