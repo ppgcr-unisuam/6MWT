@@ -139,4 +139,6 @@ B <- 1000
 
 source("ensemble.R")
 
+source("figures.R")
+
 # the end
