@@ -208,9 +208,21 @@ for (b in 1:B) {
     }
   }
   
-  # compute bias based on individual participant data and average measured distance across models
-  ensemble_pred_subject <- rowMeans(predictions_matrix, na.rm = TRUE)
-  results_ensemble$distance_est[b] <- mean(ensemble_pred_subject, na.rm = TRUE)
+  # compute bias based on individual participant data and summarize trimmed estimated distance across models
+  ensemble_pred_subject <- apply(
+    predictions_matrix,
+    1,
+    function (x) mean(x, ntrim = 0.0, na.rm = TRUE)
+  )
+  results_ensemble$distance_est[b] <- mean(ensemble_pred_subject, ntrim = 0.0, na.rm = TRUE)
+  
+  # use trimed median
+  # ensemble_pred_subject <- apply(
+  #   predictions_matrix,
+  #   1,
+  #   function (x) median(x, ntrim = 0.0, na.rm = TRUE)
+  # )
+  # results_ensemble$distance_est[b] <- median(ensemble_pred_subject, ntrim = 0.0, na.rm = TRUE)
   
   # compute R² (Bootstrap distribution of explained variance / rank preservation)
   r2_b <- cor(
