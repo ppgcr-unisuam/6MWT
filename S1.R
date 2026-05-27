@@ -118,7 +118,7 @@ sec_properties <- officer::prop_section(
 officer::read_docx() %>%
   officer::body_add_par(
     "Table S1: Summary of Parameter Sets Used in Published Equations",
-    style = "heading 1"
+    style = "Table Caption"
   ) %>%
   officer::body_add_table(
     summary_table,

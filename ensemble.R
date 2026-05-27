@@ -84,17 +84,19 @@ model_params_filtered <- rawmodels[which(rawmodels$Variable == "Sex code female"
 # initialize results dataframe
 results_ensemble <- data.frame(
   b = 1:B,
-  dataset = rep(NA, B),
-  n_models = rep(NA, B),
-  models = rep(NA, B),
-  distance_meas = rep(NA, B),
-  distance_est = rep(NA, B),
-  r2 = rep(NA, B),
-  bias = rep(NA, B),
-  lower_CI = rep(NA, B),
-  upper_CI = rep(NA, B),
-  mae = rep(NA, B),
-  rmse = rep(NA, B)
+  dataset = rep(NA_character_, B),
+  n_models = rep(NA_integer_, B),
+  models = rep(NA_character_, B),
+  weights = rep(NA_character_, B),
+  distance_meas = rep(NA_real_, B),
+  distance_est = rep(NA_real_, B),
+  var_pred = rep(NA_real_, B),
+  r2 = rep(NA_real_, B),
+  bias = rep(NA_real_, B),
+  lower_CI = rep(NA_real_, B),
+  upper_CI = rep(NA_real_, B),
+  mae = rep(NA_real_, B),
+  rmse = rep(NA_real_, B)
 )
 
 # Monte Carlo Model Averaging com bootstrap em IPD
@@ -208,21 +210,45 @@ for (b in 1:B) {
     }
   }
   
-  # compute bias based on individual participant data and summarize trimmed estimated distance across models
-  ensemble_pred_subject <- apply(
-    predictions_matrix,
-    1,
-    function (x) mean(x, ntrim = 0.0, na.rm = TRUE)
-  )
-  results_ensemble$distance_est[b] <- mean(ensemble_pred_subject, ntrim = 0.0, na.rm = TRUE)
+  # residuals
+  residuals_matrix <- predictions_matrix - dataset_boot$`6MWD`
   
-  # use trimed median
-  # ensemble_pred_subject <- apply(
-  #   predictions_matrix,
-  #   1,
-  #   function (x) median(x, ntrim = 0.0, na.rm = TRUE)
-  # )
-  # results_ensemble$distance_est[b] <- median(ensemble_pred_subject, ntrim = 0.0, na.rm = TRUE)
+  # remove bias
+  residuals_matrix <- scale(residuals_matrix, center = TRUE, scale = FALSE)
+  
+  # covariance
+  Sigma <- corpcor::cov.shrink(residuals_matrix)
+  
+  # stronger regularization
+  lambda <- 0.01 * mean(diag(Sigma))
+  Sigma_reg <- Sigma + diag(lambda, ncol(Sigma))
+  
+  # inverse with fallback
+  Sigma_inv <- tryCatch(
+    solve(Sigma_reg),
+    error = function(e) MASS::ginv(Sigma_reg)
+  )
+  
+  # weights
+  ones <- rep(1, ncol(Sigma_inv))
+  weights_blue <- as.vector(
+    (Sigma_inv %*% ones) /
+      as.numeric(t(ones) %*% Sigma_inv %*% ones)
+  )
+  
+  # optional shrinkage toward equal weights
+  alpha <- 0.7
+  w_equal <- rep(1/ncol(predictions_matrix), ncol(predictions_matrix))
+  weights_blue <- alpha * weights_blue + (1 - alpha) * w_equal
+  
+  # ensemble prediction
+  ensemble_pred_subject <- as.vector(predictions_matrix %*% weights_blue)
+  
+  results_ensemble$distance_est[b] <- mean(ensemble_pred_subject, trim = 0, na.rm = TRUE)
+  
+  results_ensemble$weights[b] <- paste(round(weights_blue, 4), collapse = ";")
+  
+  results_ensemble$var_pred[b] <- var(ensemble_pred_subject, na.rm = TRUE)
   
   # compute R² (Bootstrap distribution of explained variance / rank preservation)
   r2_b <- cor(
@@ -247,7 +273,8 @@ for (b in 1:B) {
 # select best ensemble (lowest absolute bias) for each number of models
 best_ensembles <- results_ensemble %>%
   dplyr::group_by(n_models) %>%
-  dplyr::slice_min(order_by = abs(bias), n = 1)
+  dplyr::slice_min(order_by = rmse, n = 1) %>%
+  dplyr::ungroup()
 
 # save results
 write.csv(

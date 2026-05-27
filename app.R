@@ -350,7 +350,7 @@ ui <- shiny::fluidPage(
       shiny::br(),
       shiny::HTML("<b>Citation</b>"),
       shiny::HTML(
-        "Arthur de Sá Ferreira, & PPGCR. (2025). FerreiraAS/UsIA: v1.0.0 (v1.0.0). Zenodo. h<a tref=\"htps://doi.org/10.5281/zenodo.17663547\">ttps://doi.org/10.5281/zenodo.17663547</a>."
+        "Arthur de Sá Ferreira, & PPGCR. (2025). FerreiraAS/UsIA: v1.0.0 (v1.0.0). Zenodo. <a href=\"https://doi.org/10.5281/zenodo.17663547\">https://doi.org/10.5281/zenodo.17663547</a>."
       ),
       shiny::br(),
       shiny::br(),

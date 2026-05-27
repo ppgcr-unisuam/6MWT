@@ -418,16 +418,16 @@ single_model_results_plot <- single_model_results_plot %>%
 label_x <- max(single_model_results_plot$upper_CI, na.rm = TRUE) * 1.10
 
 # separar último modelo
-main_models <- single_model_results_plot %>% slice(-n())
-last_model  <- single_model_results_plot %>% slice(n())
+main_models <- single_model_results_plot %>% dplyr::slice(-n())
+last_model  <- single_model_results_plot %>% dplyr::slice(n())
 
 # reordenar apenas os principais
 main_models <- main_models %>%
-  arrange(bias)
+  dplyr::arrange(bias)
 
 # reconstruir data.frame
-single_model_results_plot2 <- bind_rows(main_models, last_model) %>%
-  mutate(
+single_model_results_plot2 <- dplyr::bind_rows(main_models, last_model) %>%
+  dplyr::mutate(
     model_name_ord = factor(
       model_name_full,
       levels = model_name_full
@@ -444,7 +444,7 @@ p6 <- ggplot2::ggplot(
     ymax = upper_CI
   )
 ) +
-  ggplot2::geom_pointrange(size = 0.4) +
+  ggplot2::geom_pointrange(linewidth = 0.7, fatten = 2) +
   ggplot2::geom_hline(yintercept = 0, linetype = "dashed", color = "red") +
   ggplot2::geom_text(
     ggplot2::aes(label = bias_CI95),
